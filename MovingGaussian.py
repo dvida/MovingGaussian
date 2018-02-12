@@ -77,11 +77,11 @@ if __name__ == "__main__":
 
     # Moving Gaussian parameters
     a0 = 10.0
-    a1 = 40000.0
-    sigma = 2.0
+    a1 = 100000.0
+    sigma = 4.0
     x0 = 50.0
     y0 = 50.0
-    L = 10.0
+    L = 12.0
     omega = np.radians(45)
     saturation_level = 255
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     # Fit the moving Gaussian
     res = scipy.optimize.least_squares(movingGaussianResiduals_, p0, args=((y_ind, x_ind), img.ravel(), \
-        saturation_level))
+        saturation_level), loss='soft_l1')
 
     print(res)
 
@@ -131,15 +131,26 @@ if __name__ == "__main__":
 
     fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
 
+    # Plot the simulated image
     ax1.set_title('Image')
-    ax1.imshow(img, vmin=0, vmax=saturation_level)
+    ax1.imshow(img, vmin=0, vmax=saturation_level, cmap='gray')
 
+    # Plot the region of saturation
+    saturation_overlay = np.zeros_like(img) + saturation_level
+    saturation_overlay = np.ma.masked_where(saturation_mask, saturation_overlay)
+    ax1.imshow(saturation_overlay, cmap='hsv')
+
+    # Plot the fit
     ax2.set_title('Fit')
     ax2.imshow(movingGaussian2D((y_ind, x_ind), *res.x, saturation_level=saturation_level).reshape(x_size, \
-        y_size), )
+        y_size), vmin=0, vmax=saturation_level, cmap='gray')
 
+    # Plot residuals
     ax3.set_title('Residuals')
     ax3.imshow(img - movingGaussian2D((y_ind, x_ind), *res.x, \
-        saturation_level=saturation_level).reshape(x_size, y_size), vmin=0, vmax=saturation_level)
+        saturation_level=saturation_level).reshape(x_size, y_size), vmin=0, vmax=saturation_level, cmap='gray')
 
+
+    plt.tight_layout()
+    
     plt.show()
