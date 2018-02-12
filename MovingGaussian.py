@@ -1,14 +1,15 @@
 """ Implementation of a moving Gaussian function with an example. """
 
-from __future__ import division
+from __future__ import division, print_function, absolute_import
 
 import numpy as np
 import scipy.special
+import scipy.optimize
 import matplotlib.pyplot as plt
 
 
 
-def movingGaussian2D(x, y, a0, level_sum, sigma, x0, y0, L, omega, saturation_level=None):
+def movingGaussian2D((x, y), a0, level_sum, sigma, x0, y0, L, omega, saturation_level=None):
     """ Moving Gaussian function with saturation intensity limiting.
 
     Based on:
@@ -55,7 +56,7 @@ def movingGaussian2D(x, y, a0, level_sum, sigma, x0, y0, L, omega, saturation_le
         intens[intens > saturation_level] = saturation_level
 
 
-    return intens
+    return intens.ravel()
 
 
 
@@ -67,26 +68,78 @@ if __name__ == "__main__":
     y_size = 100
 
     # Generate the image range
-    x = np.linspace(-10, 10, x_size)
-    y = np.linspace(-10, 10, y_size)
+    # x = np.linspace(-10, 10, x_size)
+    # y = np.linspace(-10, 10, y_size)
 
-    xx, yy = np.meshgrid(x, y)
+    # xx, yy = np.meshgrid(x, y)
+
+    yy, xx = np.indices((y_size, x_size))
 
     # Moving Gaussian parameters
     a0 = 10.0
-    a1 = 7000.0
-    sigma = 1.0
-    x0 = 0.0
-    y0 = 0.0
-    L = 7.0
+    a1 = 40000.0
+    sigma = 2.0
+    x0 = 50.0
+    y0 = 50.0
+    L = 10.0
     omega = np.radians(45)
     saturation_level = 255
 
 
     # Evaluate the moving Gaussian
-    img = movingGaussian2D(xx, yy, a0, a1, sigma, x0, y0, L, omega, saturation_level)
-    img.reshape(x_size, y_size)
+    img = movingGaussian2D((xx, yy), a0, a1, sigma, x0, y0, L, omega, saturation_level)
+    img = img.reshape(x_size, y_size)
 
 
-    plt.imshow(img)
+    # Add noise to the image where it is not saturating
+    saturation_mask = img < saturation_level
+    img[saturation_mask] += np.random.normal(0, 10.0, size=(x_size, y_size))[saturation_mask]
+    img = np.clip(img, 0, saturation_level)
+
+
+    ### Fit the moving Gaussian to fake data ###
+
+    def movingGaussianResiduals_(params, x, y, saturation_level):
+        return movingGaussian2D(x, *params, saturation_level=saturation_level) - y
+        
+
+    
+    # Create x and y indices
+    y_ind, x_ind = np.indices(img.shape)
+    y_len, x_len = img.shape
+
+
+    # Initial guess
+    bg_est = np.percentile(img, 50.0)
+    p0 = [bg_est, np.sum(img) - bg_est*y_len*x_len, 1.0, x_len/2.0, y_len/2.0, 1.0, 1.0]
+
+
+    print('Initial guess:', p0)
+
+
+    # Fit the moving Gaussian
+    res = scipy.optimize.least_squares(movingGaussianResiduals_, p0, args=((y_ind, x_ind), img.ravel(), \
+        saturation_level))
+
+    print(res)
+
+    print('Fitted parameters:')
+    print(res.x)
+
+
+    ###########################################
+
+    fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
+
+    ax1.set_title('Image')
+    ax1.imshow(img)
+
+    ax2.set_title('Fit')
+    ax2.imshow(movingGaussian2D((y_ind, x_ind), *res.x, saturation_level=saturation_level).reshape(x_size, \
+        y_size))
+
+    ax3.set_title('Residuals')
+    ax3.imshow(img - movingGaussian2D((y_ind, x_ind), *res.x, \
+        saturation_level=saturation_level).reshape(x_size, y_size))
+
     plt.show()
