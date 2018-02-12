@@ -132,14 +132,14 @@ if __name__ == "__main__":
     fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
 
     ax1.set_title('Image')
-    ax1.imshow(img)
+    ax1.imshow(img, vmin=0, vmax=saturation_level)
 
     ax2.set_title('Fit')
     ax2.imshow(movingGaussian2D((y_ind, x_ind), *res.x, saturation_level=saturation_level).reshape(x_size, \
-        y_size))
+        y_size), )
 
     ax3.set_title('Residuals')
     ax3.imshow(img - movingGaussian2D((y_ind, x_ind), *res.x, \
-        saturation_level=saturation_level).reshape(x_size, y_size))
+        saturation_level=saturation_level).reshape(x_size, y_size), vmin=0, vmax=saturation_level)
 
     plt.show()
