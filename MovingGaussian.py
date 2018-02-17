@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 
-def movingGaussian2D((x, y), a0, level_sum, sigma, x0, y0, L, omega, saturation_level=None):
+def movingGaussian2D(data_tuple, a0, level_sum, sigma, x0, y0, L, omega, saturation_level=None):
     """ Moving Gaussian function with saturation intensity limiting.
 
     Based on:
@@ -22,8 +22,9 @@ def movingGaussian2D((x, y), a0, level_sum, sigma, x0, y0, L, omega, saturation_
 
 
     Arguments:
-        x: [ndarray] Array of X image coordinates.
-        y: [ndarray] Array of Y image coordiantes.
+        data_tuple: [tuple]
+            - x: [ndarray] Array of X image coordinates.
+            - y: [ndarray] Array of Y image coordiantes.
         a0: [float] Background level.
         level_sum: [float] Total flux of the Gaussian.
         sigma: [float] Standard deviation.
@@ -36,7 +37,9 @@ def movingGaussian2D((x, y), a0, level_sum, sigma, x0, y0, L, omega, saturation_
         saturation_level: [float] Level of saturation. None by default.
 
     """
-    
+        
+    x, y = data_tuple
+
     # Rotate the coordinates
     x_m = (x - x0)*np.cos(omega) - (y - y0)*np.sin(omega)
     y_m = (x - x0)*np.sin(omega) + (y - y0)*np.cos(omega)
@@ -47,7 +50,7 @@ def movingGaussian2D((x, y), a0, level_sum, sigma, x0, y0, L, omega, saturation_
 
     f1 = scipy.special.erf(u1) - scipy.special.erf(u2)
 
-    # Ealuate the intensity at every pixel
+    # Evaluate the intensity at every pixel
     intens = a0 + level_sum/(2*sigma*np.sqrt(2*np.pi)*L)*np.exp(-y_m**2/(2*sigma**2))*f1
 
 
